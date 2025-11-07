@@ -4,68 +4,62 @@ A Next-Generation LLM-Powered Interactive Fiction Engine
 
 ## What is This?
 
-SCUMM-L Enhanced is a text adventure engine powered by advanced LLMs (Claude, ChatGPT, etc) designed for immersive, dynamic storytelling, emergent gameplay, and rich simulation. It uses a design document (`Scumm_l.txt`) detailing its world model, narration style, input parsing, NPC behavior, puzzles, and more.
+SCUMM-L Enhanced is a text adventure engine powered by LLMs (Claude, ChatGPT, etc) designed for immersive storytelling, emergent gameplay, and deep world simulation. Everything needed to play is inside the file `Scumm_l.txt`.
 
 ## Quick Start
 
-### 1. Download or Copy the Game Script
+### 1. Get the Game Script
 
-You can get the game script (`Scumm_l.txt`) by either:
+Use one of these options:
 
-- **Direct Download**:  
+- **Download**:  
   [Download Scumm_l.txt (raw)](https://raw.githubusercontent.com/slothitude/Scumm_L/main/Scumm_l.txt)
 
-- **Manual Copy**:  
-  Copy the contents from the raw file:  
-  [View raw file](https://raw.githubusercontent.com/slothitude/Scumm_L/main/Scumm_l.txt)
+- **Copy the Raw File Link**:  
+  [Copy raw link](https://raw.githubusercontent.com/slothitude/Scumm_L/main/Scumm_l.txt)
+
+- **Copy All File Text**:  
+  Open the raw file link above and copy the full contents.
 
 ### 2. Choose Your AI Platform
 
-You can play SCUMM-L Enhanced in **Claude** (Anthropic) or **ChatGPT** (OpenAI). You need a paid or free account that allows document upload or long input.
+You can play SCUMM-L Enhanced in either **ChatGPT** (OpenAI) or **Claude** (Anthropic).
 
-### 3. Play
-
-#### For Claude
-
-1. Go to https://claude.ai/
-2. Start a new chat.
-3. Upload the `Scumm_l.txt` file **OR** paste the entire contents in the chat box.
-4. Type:  
+#### ChatGPT (https://chat.openai.com/)
+1. Start a new conversation.
+2. Paste the raw file link, or upload the downloaded file if you have file upload enabled, or copy-paste the entire text contents into the chat box.
+3. Enable voice mode (mic icon) if available and say or type:  
+   play
+   Or type:  
    Find the voice mode and say play
-5. Claude will generate an adventure and begin the interactive fiction.
+4. Begin your adventure!
 
-#### For ChatGPT
-
-1. Go to https://chat.openai.com/
-2. Start a new conversation.
-3. Paste the entire contents of `Scumm_l.txt` into the chat box.
-4. Type:  
+#### Claude (https://claude.ai/)
+1. Start a new chat.
+2. Paste the raw file link, or upload the downloaded file if upload is enabled, or copy-paste the entire file contents.
+3. Enable voice mode if available, and say or type:  
+   play
+   Or type:  
    Find the voice mode and say play
-5. ChatGPT will start the adventure world. You can use "Voice mode" (mic button) if available to play by speaking.
+4. Claude will generate your adventure world and let you play.
 
-## How to Play
+### 3. Play the Game
 
-- Interact with the story by typing your actions (e.g., `go north`, `examine painting`, `talk to npc`).
-- Follow the choices and prompts presented by the engine.
-- Use “hint” for puzzle help.
-- Type “save” to export your game state (if supported).
-- Type “load” to reload (if supported).
-- For voice interaction: Enable voice in your platform and talk to your AI (if available).
+- Type your adventure actions (e.g., `go north`, `talk to npc`, `examine room`).
+- For hints, type: `hint`
+- For voice interaction, enable voice mode in your platform and speak your commands.
 
 ## Tips
 
-- The engine supports creative commands and multiple solutions.
-- NPCs remember your choices and relationships matter.
-- Try exploring, examining, and combining objects for surprises!
+- Multiple solutions are possible—be creative!
+- NPCs react to your choices.
+- You can use "save" and "load" (if supported).
+- The world reacts and changes based on your actions.
 
 ## Credits
 
-- Design by [slothitude](https://github.com/slothitude)
-- See `Scumm_l.txt` for the full engine philosophy, world model, and gameplay details.
-
-## License
-
-To be determined. See repository status.
+- Designed by [slothitude](https://github.com/slothitude)
+- See `Scumm_l.txt` for technical details and the game engine philosophy.
 
 ---
 Enjoy your adventure!
