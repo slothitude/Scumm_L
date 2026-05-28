@@ -1,65 +1,83 @@
-# SCUMM-L Enhanced
+# SCUMM-L
 
-A Next-Generation LLM-Powered Interactive Fiction Engine
+A point-and-click adventure engine powered by LLMs, built in Godot 4.6. The AI acts as your Game Master — narrating the world, controlling NPCs, and responding to every action with dynamic, immersive prose. 3D rooms rendered with Kenney assets, with a pipeline for AI-generated visuals via ComfyUI + Hunyuan3D.
 
-## What is This?
+## What It Does
 
-SCUMM-L Enhanced is a text adventure engine powered by LLMs (Claude, ChatGPT, etc) designed for immersive storytelling, emergent gameplay, and deep world simulation. Everything needed to play is inside the file `Scumm_l.txt`.
+- **LLM Game Master** — Every click and typed action goes to an LLM (Z.ai GLM-5.1, with LiteLLM/Ollama fallback). The LLM returns structured JSON: narration text + state changes (inventory, flags, room transitions, NPC mood).
+- **3D Rooms** — Kenney asset packs provide GLB models for taverns, villages, characters, and props. Loaded at runtime via Godot's `GLTFDocument`. Click detection via raycasting.
+- **Dynamic State** — Godot is the authority. The LLM proposes state changes; Godot validates before applying. Room transitions, inventory, puzzle flags, NPC disposition — all tracked server-side.
+- **AI Art Pipeline** (planned) — ComfyUI generates 2D sprites/backgrounds, Hunyuan3D 2.1 converts to 3D GLB. Cached to disk after first generation.
 
-## Quick Start
+## Architecture
 
-### 1. Get the Game Script
+```
+Player Click/Type → InputRouter → GameState builds context
+                                     ↓
+                              LLMClient (3-tier fallback)
+                              Z.ai → LiteLLM → Ollama
+                                     ↓
+                              ResponseParser (JSON validate/repair)
+                                     ↓
+                              GameState applies validated mutations
+                                     ↓
+                              RoomRenderer (3D SubViewport + GLB models)
+```
 
-Use one of these options:
+## Project Structure
 
-- **Download**:  
-  [Download Scumm_l.txt (raw)](https://raw.githubusercontent.com/slothitude/Scumm_L/main/Scumm_l.txt)
+```
+scumm_l/
+├── project.godot              # Godot config (GameState + GameConsts autoloads)
+├── main.tscn                  # Root scene
+├── core/
+│   ├── game_manager.gd        # Orchestrator: UI, signals, input → LLM flow
+│   ├── game_state.gd          # Authoritative state + signal-driven setters
+│   ├── llm_client.gd          # HTTPRequest with 3-tier fallback cascade
+│   ├── response_parser.gd     # JSON validation/repair for LLM output
+│   ├── prompt_builder.gd      # Modular prompt assembly (system + world + history + action)
+│   ├── room_renderer.gd       # SubViewport3D builder, GLB loader, click raycasting
+│   └── constants.gd           # LLM endpoints, API keys, UI colors, 3D defaults
+├── assets/
+│   └── models/                # Kenney GLB models (per-kit subdirs + textures)
+│       ├── mini-dungeon/      # Characters, barrels, chests, walls, weapons
+│       ├── graveyard-kit/     # Skeleton, ghost, vampire, keeper, candles, crypts
+│       ├── fantasy-town/      # Fountains, carts, banners, fences, hedges
+│       └── pirate-kit/        # Barrels, chests, flags, cannons
+├── SCUMM-L_Enhanced_Immersive.txt  # Original prompt-only version
+└── .gitignore
+```
 
-- **Copy the Raw File Link**:  
-  [Copy raw link](https://raw.githubusercontent.com/slothitude/Scumm_L/main/Scumm_l.txt)
+## LLM Configuration
 
-- **Copy All File Text**:  
-  Open the raw file link above and copy the full contents.
+Three-tier fallback cascade — if the primary endpoint fails, it tries the next:
 
-### 2. Choose Your AI Platform
+| Tier | Endpoint | Model | Config |
+|------|----------|-------|--------|
+| 1 | Z.ai API | GLM-5.1 | `constants.gd` → `ZAI_URL`, `ZAI_KEY` |
+| 2 | LiteLLM proxy | qwen3 | `constants.gd` → `LITELLM_URL`, `LITELLM_KEY` |
+| 3 | Ollama direct | qwen3 | `constants.gd` → `OLLAMA_URL` |
 
-You can play SCUMM-L Enhanced in either **ChatGPT** (OpenAI) or **Claude** (Anthropic).
+Set your API keys in `core/constants.gd`.
 
-#### ChatGPT (https://chat.openai.com/)
-1. Start a new conversation.
-2. Paste the raw file link, or upload the downloaded file if you have file upload enabled, or copy-paste the entire text contents into the chat box.
-3. Enable voice mode (mic icon) if available and say or type:  
-   play
-   Or type:  
-   Find the voice mode and say play
-4. Begin your adventure!
+## Running
 
-#### Claude (https://claude.ai/)
-1. Start a new chat.
-2. Paste the raw file link, or upload the downloaded file if upload is enabled, or copy-paste the entire file contents.
-3. Enable voice mode if available, and say or type:  
-   play
-   Or type:  
-   Find the voice mode and say play
-4. Claude will generate your adventure world and let you play.
+1. Open in **Godot 4.6+**
+2. Press **F5**
+3. Click on objects/NPCs in the 3D room, or type actions in the input field
 
-### 3. Play the Game
+Verbs recognized: `examine`, `look at`, `talk to`, `use`, `go`, `walk to`, `take`, `pick up`, or free text.
 
-- Type your adventure actions (e.g., `go north`, `talk to npc`, `examine room`).
-- For hints, type: `hint`
-- For voice interaction, enable voice mode in your platform and speak your commands.
+## Rooms
 
-## Tips
+**The Rusty Anchor Tavern** — Bar counter, old chest, fireplace, door to village. An orc stranger broods in the corner. The human innkeeper polishes tankards.
 
-- Multiple solutions are possible—be creative!
-- NPCs react to your choices.
-- You can use "save" and "load" (if supported).
-- The world reacts and changes based on your actions.
+**Village Square** — Crumbling fountain, market cart, stone bench. A skeleton merchant sells oddities. The tavern door leads back.
 
-## Credits
+## Origin
 
-- Designed by [slothitude](https://github.com/slothitude)
-- See `Scumm_l.txt` for technical details and the game engine philosophy.
+SCUMM-L started as a pure-prompt project (`SCUMM-L_Enhanced_Immersive.txt`) — a 1377-line prompt that turned Claude/ChatGPT into a text adventure GM. This repo evolved it into a visual engine with real-time 3D rendering, state management, and an AI art pipeline.
 
----
-Enjoy your adventure!
+## License
+
+MIT
