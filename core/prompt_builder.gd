@@ -22,7 +22,11 @@ RESPONSE FORMAT — always return a single JSON object:
     "inventory_remove": ["item_name"],
     "new_room": null,
     "npc_updates": {"npc_name": {"mood": "friendly"}}
-  }
+  },
+  "image_requests": [
+    {"type": "icon", "id": "rusty_key", "prompt": "A rusty iron key on white background", "size": 64},
+    {"type": "portrait", "id": "orc_stranger", "prompt": "Portrait of a mysterious orc in a dark cloak", "size": 256}
+  ]
 }
 
 - Only include state_changes that are relevant to this action.
@@ -31,7 +35,24 @@ RESPONSE FORMAT — always return a single JSON object:
 - inventory_add: give items when the player finds or receives them.
 - inventory_remove: take items when the player uses or loses them.
 - new_room: set to a room ID only when the player actually moves to a new location.
-- npc_updates: change NPC properties like mood, disposition, or knowledge."""
+- npc_updates: change NPC properties like mood, disposition, or knowledge.
+
+IMAGE REQUESTS — include an "image_requests" array when visuals should be generated:
+- When a new item enters inventory → type "icon" (size 64), id = item name (lowercase, underscores)
+- When describing an NPC for the first time → type "portrait" (size 256), id = npc name
+- When the player examines something in detail → type "closeup" (size 512), id = object name
+- On first room visit → type "background" (size 1280), id = room name
+- For atmospheric/graded room backgrounds → type "atmosphere" (size 1280), id = room name
+- For retro pixel art icons → type "pixelate" (size 64, extra key "pixel_size": 8)
+- For small cursor-held items → type "cursor" (size 32), id = item name
+- For framed NPC dialogue portraits → type "dialogue_frame" (size 256, extra key "name": npc name)
+- For mysterious shadowy figures → type "silhouette" (size 256), id = npc name
+- For tileable wall/floor textures → type "tile" (size 256)
+- Image prompts must be SHORT: just the subject and its appearance, 3-8 words max
+- Do NOT include style, lighting, background, or composition — the service adds those automatically
+- Examples: "a rusty iron key", "green glass potion bottle", "cloaked orc with scarred face", "dim tavern with stone walls"
+- Only request an image if it hasn't been requested before for that id
+- Omit "image_requests" entirely if no new visuals are needed"""
 
 
 func build_messages(action: String, target: String, game_state: Node) -> Array:
@@ -81,6 +102,12 @@ func _build_world_context(game_state: Node) -> String:
 	var exits: Dictionary = room.get("exits", {})
 	if exits.size() > 0:
 		context += "Exits: %s\n" % str(exits)
+
+	# Image generation hints — tell LLM what's already cached
+	var known_images: Array = game_state.get("known_image_ids") if game_state.get("known_image_ids") else []
+	if known_images.size() > 0:
+		context += "Already have images for: %s\n" % str(known_images)
+		context += "(Do not request images for these IDs again)\n"
 
 	return context
 

@@ -94,6 +94,9 @@ func _normalize_response(data: Dictionary, raw_text: String) -> Dictionary:
 	else:
 		sc["new_room"] = null
 
+	# Normalize image_requests
+	data["image_requests"] = _normalize_image_requests(data)
+
 	return data
 
 
@@ -122,5 +125,27 @@ func _make_narration_only(text: String) -> Dictionary:
 			"inventory_remove": [],
 			"new_room": null,
 			"npc_updates": {},
-		}
+		},
+		"image_requests": [],
 	}
+
+
+func _normalize_image_requests(data: Dictionary) -> Array:
+	if not data.has("image_requests") or data.image_requests is not Array:
+		return []
+	var valid: Array = []
+	for req in data.image_requests:
+		if req is not Dictionary:
+			continue
+		var img_type: String = str(req.get("type", "icon"))
+		var valid_types := ["icon", "background", "portrait", "closeup", "atmosphere",
+			"pixelate", "cursor", "dialogue_frame", "tile", "silhouette"]
+		if img_type not in valid_types:
+			img_type = "icon"
+		valid.append({
+			"type": img_type,
+			"id": str(req.get("id", "")),
+			"prompt": str(req.get("prompt", "")),
+			"size": int(req.get("size", 64)),
+		})
+	return valid

@@ -1,6 +1,7 @@
 ## Main scene orchestrator for SCUMM-L.
 ## Builds UI programmatically, wires signals, handles input → LLM → state update flow.
 ## Uses RoomRenderer for 3D scene with Kenney GLB models.
+## Integrates image_client for AI-generated visuals.
 
 extends Node
 
@@ -9,6 +10,8 @@ var llm_client: Node
 var prompt_builder: Node
 var response_parser: Node
 var room_renderer: Node
+var image_client: Node
+var _ui_icons: RefCounted
 
 # UI references
 var root_control: Control
@@ -19,6 +22,16 @@ var input_field: LineEdit
 var send_button: Button
 var status_label: Label
 var inventory_label: Label
+
+# New UI references (image integration)
+var verb_bar: HBoxContainer
+var inventory_bar: HBoxContainer
+var portrait_panel: TextureRect
+var closeup_overlay: PanelContainer
+var room_bg_texture: TextureRect
+
+# Known image IDs (to avoid re-requesting)
+var _known_image_ids: Array[String] = []
 
 
 func _ready() -> void:
@@ -44,6 +57,14 @@ func _ready() -> void:
 	room_renderer.name = "RoomRenderer"
 	room_renderer.set_script(load("res://core/room_renderer.gd"))
 	add_child(room_renderer)
+
+	image_client = Node.new()
+	image_client.name = "ImageClient"
+	image_client.set_script(load("res://core/image_client.gd"))
+	add_child(image_client)
+
+	_ui_icons = RefCounted.new()
+	_ui_icons.set_script(load("res://core/ui_icons.gd"))
 
 	_build_ui()
 	_wire_signals()
@@ -103,14 +124,104 @@ func _build_ui() -> void:
 	room_area_host.offset_left = 40
 	room_area_host.offset_top = 55
 	room_area_host.offset_right = -40
-	room_area_host.offset_bottom = -200
+	room_area_host.offset_bottom = -280  # Make room for verb bar + inventory bar
 	# Dark background behind 3D viewport
 	var room_bg := ColorRect.new()
 	room_bg.name = "RoomBG"
 	room_bg.color = Color(0.04, 0.03, 0.06)
 	room_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	room_area_host.add_child(room_bg)
+
+	# Room background texture (behind 3D viewport)
+	room_bg_texture = TextureRect.new()
+	room_bg_texture.name = "RoomBGTexture"
+	room_bg_texture.set_anchors_preset(Control.PRESET_FULL_RECT)
+	room_bg_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	room_bg_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	room_bg_texture.modulate = Color(1, 1, 1, 0.3)  # Semi-transparent behind 3D
+	room_bg_texture.visible = false
+	room_area_host.add_child(room_bg_texture)
+
 	root_control.add_child(room_area_host)
+
+	# --- Verb action bar (icon toolbar) ---
+	verb_bar = HBoxContainer.new()
+	verb_bar.name = "VerbBar"
+	verb_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	verb_bar.anchor_left = 0.0
+	verb_bar.anchor_right = 1.0
+	verb_bar.anchor_top = 1.0
+	verb_bar.anchor_bottom = 1.0
+	verb_bar.offset_left = 40
+	verb_bar.offset_top = -230
+	verb_bar.offset_right = -40
+	verb_bar.offset_bottom = -200
+	verb_bar.add_theme_constant_override("separation", 8)
+	_build_verb_bar()
+	root_control.add_child(verb_bar)
+
+	# --- Inventory bar (icon slots) ---
+	inventory_bar = HBoxContainer.new()
+	inventory_bar.name = "InventoryBar"
+	inventory_bar.alignment = BoxContainer.ALIGNMENT_BEGIN
+	inventory_bar.anchor_left = 0.0
+	verb_bar.anchor_top = 1.0
+	inventory_bar.anchor_left = 0.0
+	inventory_bar.anchor_right = 1.0
+	inventory_bar.anchor_top = 1.0
+	inventory_bar.anchor_bottom = 1.0
+	inventory_bar.offset_left = 40
+	inventory_bar.offset_top = -195
+	inventory_bar.offset_right = -40
+	inventory_bar.offset_bottom = -160
+	inventory_bar.add_theme_constant_override("separation", 4)
+	root_control.add_child(inventory_bar)
+
+	# --- Portrait panel (NPC portrait in narration area) ---
+	portrait_panel = TextureRect.new()
+	portrait_panel.name = "PortraitPanel"
+	portrait_panel.custom_minimum_size = Vector2(64, 64)
+	portrait_panel.max_size = Vector2(64, 64)
+	portrait_panel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait_panel.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait_panel.visible = false
+	# Will be positioned later as overlay on narration
+
+	# --- Closeup overlay (centered panel for object detail views) ---
+	closeup_overlay = PanelContainer.new()
+	closeup_overlay.name = "CloseupOverlay"
+	closeup_overlay.set_anchors_preset(Control.PRESET_CENTER)
+	closeup_overlay.offset_left = -280
+	closeup_overlay.offset_top = -280
+	closeup_overlay.offset_right = 280
+	closeup_overlay.offset_bottom = 280
+	closeup_overlay.visible = false
+	var closeup_vbox := VBoxContainer.new()
+	closeup_vbox.name = "CloseupVBox"
+	closeup_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	closeup_overlay.add_child(closeup_vbox)
+
+	var closeup_img := TextureRect.new()
+	closeup_img.name = "CloseupImage"
+	closeup_img.custom_minimum_size = Vector2(512, 512)
+	closeup_img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	closeup_img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	closeup_vbox.add_child(closeup_img)
+
+	var closeup_label := Label.new()
+	closeup_label.name = "CloseupLabel"
+	closeup_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	closeup_label.add_theme_font_size_override("font_size", 14)
+	closeup_label.add_theme_color_override("font_color", GameConsts.COLOR_TEXT)
+	closeup_vbox.add_child(closeup_label)
+
+	var closeup_dismiss := Button.new()
+	closeup_dismiss.name = "CloseupDismiss"
+	closeup_dismiss.text = "Close"
+	closeup_dismiss.custom_minimum_size = Vector2(100, 0)
+	closeup_vbox.add_child(closeup_dismiss)
+
+	root_control.add_child(closeup_overlay)
 
 	# --- Narration box ---
 	narration_box = RichTextLabel.new()
@@ -124,7 +235,7 @@ func _build_ui() -> void:
 	narration_box.anchor_bottom = 1.0
 	narration_box.anchor_top = 1.0
 	narration_box.offset_left = 40
-	narration_box.offset_top = -190
+	narration_box.offset_top = -155
 	narration_box.offset_right = -40
 	narration_box.offset_bottom = -60
 	# Background panel — sibling behind RichTextLabel, not a child
@@ -136,7 +247,7 @@ func _build_ui() -> void:
 	narr_bg.anchor_bottom = 1.0
 	narr_bg.anchor_top = 1.0
 	narr_bg.offset_left = 40
-	narr_bg.offset_top = -190
+	narr_bg.offset_top = -155
 	narr_bg.offset_right = -40
 	narr_bg.offset_bottom = -60
 	root_control.add_child(narr_bg)
@@ -178,6 +289,29 @@ func _build_ui() -> void:
 	bottom_bar.add_child(status_label)
 
 
+func _build_verb_bar() -> void:
+	var verbs := [
+		{"verb": "examine", "label": "Look", "icon": _ui_icons.get_verb_icon("examine")},
+		{"verb": "talk", "label": "Talk", "icon": _ui_icons.get_verb_icon("talk")},
+		{"verb": "use", "label": "Use", "icon": _ui_icons.get_verb_icon("use")},
+		{"verb": "take", "label": "Take", "icon": _ui_icons.get_verb_icon("take")},
+		{"verb": "go", "label": "Go", "icon": _ui_icons.get_verb_icon("go")},
+	]
+	for v in verbs:
+		var btn := Button.new()
+		btn.name = "Verb_%s" % v.verb
+		btn.text = v.label
+		btn.tooltip_text = v.label
+		btn.custom_minimum_size = Vector2(60, 0)
+		# Load icon texture
+		var tex := load(v.icon) if ResourceLoader.exists(v.icon) else null
+		if tex:
+			btn.icon = tex
+			btn.flat = true
+		btn.pressed.connect(_on_verb_pressed.bind(v.verb))
+		verb_bar.add_child(btn)
+
+
 # ============================================================
 # Signal Wiring
 # ============================================================
@@ -195,6 +329,14 @@ func _wire_signals() -> void:
 	game_state.room_changed.connect(_on_room_changed)
 	game_state.inventory_changed.connect(_on_inventory_changed)
 
+	# Image client signals
+	image_client.image_received.connect(_on_image_received)
+	image_client.image_failed.connect(_on_image_failed)
+
+	# Closeup dismiss button
+	var dismiss_btn = closeup_overlay.get_node("CloseupVBox/CloseupDismiss")
+	dismiss_btn.pressed.connect(func(): closeup_overlay.visible = false)
+
 
 # ============================================================
 # Room Rendering (3D)
@@ -210,7 +352,7 @@ func _show_room(room_id: String) -> void:
 
 	# Clear previous room viewport
 	for child in room_area_host.get_children():
-		if child.name != "RoomBG":
+		if child.name != "RoomBG" and child.name != "RoomBGTexture":
 			child.queue_free()
 
 	# Build 3D room via room_renderer
@@ -242,6 +384,11 @@ func _on_hotspot_clicked(hotspot_id: String) -> void:
 
 	var messages: Array = prompt_builder.build_messages("examine", hotspot_id, game_state)
 	llm_client.send_prompt(messages)
+
+
+func _on_verb_pressed(verb: String) -> void:
+	input_field.text = verb + " "
+	input_field.grab_focus()
 
 
 func _on_send_pressed() -> void:
@@ -318,7 +465,7 @@ func _on_llm_response(raw_text: String) -> void:
 	narration_box.append_text("\n%s\n" % narration)
 	game_state.add_to_history("assistant", narration)
 
-	# Apply validated state changes
+	# Apply validated state changes immediately (don't wait for images)
 	var changes: Dictionary = parsed.get("state_changes", {})
 
 	# Validate room transition before applying
@@ -334,11 +481,178 @@ func _on_llm_response(raw_text: String) -> void:
 	else:
 		game_state.apply_llm_changes(changes)
 
+	# Dispatch image requests (fire-and-forget)
+	var image_requests: Array = parsed.get("image_requests", [])
+	for req in image_requests:
+		_dispatch_image_request(req)
+
 	# Re-enable input
 	input_field.editable = true
 	send_button.disabled = false
 	input_field.grab_focus()
 
+
+func _dispatch_image_request(req: Dictionary) -> void:
+	var img_type: String = req.get("type", "icon")
+	var img_id: String = req.get("id", "")
+	var prompt: String = req.get("prompt", "")
+	var size: int = int(req.get("size", 64))
+
+	if img_id == "" or prompt == "":
+		return
+
+	# Skip if already known
+	if img_id in _known_image_ids:
+		return
+
+	image_client.request(img_id, img_type, prompt, size)
+
+
+# ============================================================
+# Image Response Handling
+# ============================================================
+
+func _on_image_received(img_id: String, img_type: String, texture: Texture2D) -> void:
+	_known_image_ids.append(img_id)
+
+	match img_type:
+		"icon":
+			_update_inventory_bar()
+		"portrait":
+			_show_portrait(img_id, texture)
+		"dialogue_frame":
+			_show_dialogue_frame(texture)
+		"background":
+			_show_room_background(texture)
+		"atmosphere":
+			_show_room_background(texture)
+		"closeup":
+			_show_closeup(texture)
+		"pixelate":
+			_update_inventory_bar()
+		"cursor":
+			_update_inventory_bar()
+		"silhouette":
+			_show_portrait(img_id, texture)
+
+
+func _on_image_failed(img_id: String, img_type: String, error: String) -> void:
+	print("[ImageClient] Failed: %s/%s — %s" % [img_type, img_id, error])
+	# Show placeholder on failure
+	var placeholder := _make_placeholder(img_type, img_id)
+	if placeholder:
+		match img_type:
+			"portrait":
+				_show_portrait(img_id, placeholder)
+			"dialogue_frame":
+				_show_dialogue_frame(placeholder)
+			"silhouette":
+				_show_portrait(img_id, placeholder)
+			"closeup":
+				_show_closeup(placeholder)
+
+
+func _make_placeholder(img_type: String, img_id: String) -> Texture2D:
+	var size := 64
+	match img_type:
+		"portrait": size = 256
+		"dialogue_frame": size = 280
+		"silhouette": size = 256
+		"closeup": size = 512
+		"background": size = 256
+		"atmosphere": size = 256
+		"pixelate": size = 64
+		"cursor": size = 32
+		"tile": size = 256
+
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.2, 0.15, 0.3, 0.8))
+	return ImageTexture.create_from_image(img)
+
+
+# ============================================================
+# Image Display Methods
+# ============================================================
+
+func _show_portrait(img_id: String, texture: Texture2D) -> void:
+	portrait_panel.texture = texture
+	portrait_panel.visible = true
+	var timer := get_tree().create_timer(10.0)
+	timer.timeout.connect(func(): portrait_panel.visible = false)
+
+
+func _show_dialogue_frame(texture: Texture2D) -> void:
+	portrait_panel.texture = texture
+	portrait_panel.visible = true
+	# Dialogue frames stay longer — 15 seconds
+	var timer := get_tree().create_timer(15.0)
+	timer.timeout.connect(func(): portrait_panel.visible = false)
+
+
+func _show_room_background(texture: Texture2D) -> void:
+	room_bg_texture.texture = texture
+	room_bg_texture.visible = true
+
+
+func _show_closeup(texture: Texture2D) -> void:
+	var closeup_img = closeup_overlay.get_node("CloseupVBox/CloseupImage")
+	closeup_img.texture = texture
+	closeup_overlay.visible = true
+
+
+func _update_inventory_bar() -> void:
+	# Clear existing inventory icons
+	for child in inventory_bar.get_children():
+		child.queue_free()
+
+	if game_state.inventory.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "  (no items)"
+		empty_label.add_theme_font_size_override("font_size", 12)
+		empty_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.4))
+		inventory_bar.add_child(empty_label)
+		return
+
+	for item in game_state.inventory:
+		var slot := TextureRect.new()
+		slot.name = "InvSlot_%s" % item
+		slot.custom_minimum_size = Vector2(32, 32)
+		slot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		slot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		slot.tooltip_text = item
+
+		# Try to load cached icon texture
+		if image_client and image_client._cache:
+			var tex: Texture2D = image_client._cache.get_cached_texture(item, "icon")
+			if tex:
+				slot.texture = tex
+			else:
+				slot.texture = load(_ui_icons.ICON_ADD) if ResourceLoader.exists(_ui_icons.ICON_ADD) else null
+
+		slot.gui_input.connect(func(event):
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				input_field.text = "use " + item + " "
+				input_field.grab_focus()
+		)
+		inventory_bar.add_child(slot)
+
+		# Item name label below icon
+		var name_label := Label.new()
+		name_label.text = item
+		name_label.add_theme_font_size_override("font_size", 10)
+		name_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.5))
+		var label_vbox := VBoxContainer.new()
+		label_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		# Swap: remove slot from inventory_bar, reparent into vbox
+		inventory_bar.remove_child(slot)
+		label_vbox.add_child(slot)
+		label_vbox.add_child(name_label)
+		inventory_bar.add_child(label_vbox)
+
+
+# ============================================================
+# LLM Status/Error Handlers
+# ============================================================
 
 func _on_llm_failed(error: String) -> void:
 	narration_box.append_text("\n[color=red]Error: %s[/color]\n" % error)
@@ -363,6 +677,7 @@ func _on_room_changed(room_id: String) -> void:
 
 func _on_inventory_changed(item: String, added: bool) -> void:
 	_update_inventory_display()
+	_update_inventory_bar()
 	if added:
 		narration_box.append_text("[color=green]  Acquired: %s[/color]\n" % item)
 	else:

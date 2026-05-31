@@ -29,6 +29,11 @@ const LLM_TEMPERATURE: float = 0.8
 const IMAGE_URL: String = "http://192.168.0.33:4000/v1/images/generations"
 const IMAGE_MODEL: String = "schnell"
 
+# --- Image Service (Bonsai FLUX pipeline) ---
+const IMAGE_SERVICE_URL: String = "http://localhost:8010"
+const IMAGE_CACHE_DIR: String = "user://image_cache"
+const IMAGE_GENERATION_TIMEOUT: float = 300.0
+
 # --- Asset Paths ---
 const ASSETS_MODELS: String = "res://assets/models/"
 
