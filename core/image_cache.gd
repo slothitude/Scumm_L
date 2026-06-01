@@ -14,6 +14,7 @@ const CACHE_SUBDIRS := {
 	"dialogue_frame": "dialogues",
 	"tile": "tiles",
 	"silhouette": "silhouettes",
+	"alpha": "icons",
 }
 
 

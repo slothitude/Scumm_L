@@ -138,7 +138,7 @@ func _build_ui() -> void:
 	room_bg_texture.set_anchors_preset(Control.PRESET_FULL_RECT)
 	room_bg_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	room_bg_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	room_bg_texture.modulate = Color(1, 1, 1, 0.3)  # Semi-transparent behind 3D
+	room_bg_texture.modulate = Color(1, 1, 1, 0.85)  # Visible behind 3D viewport
 	room_bg_texture.visible = false
 	room_area_host.add_child(room_bg_texture)
 
@@ -184,7 +184,17 @@ func _build_ui() -> void:
 	portrait_panel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait_panel.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait_panel.visible = false
-	# Will be positioned later as overlay on narration
+	root_control.add_child(portrait_panel)
+	portrait_panel.z_index = 10  # Above other content
+	# Position top-left of narration area
+	portrait_panel.anchor_left = 0.0
+	portrait_panel.anchor_top = 1.0
+	portrait_panel.anchor_right = 0.0
+	portrait_panel.anchor_bottom = 1.0
+	portrait_panel.offset_left = 45
+	portrait_panel.offset_top = -155
+	portrait_panel.offset_right = 115
+	portrait_panel.offset_bottom = -85
 
 	# --- Closeup overlay (centered panel for object detail views) ---
 	closeup_overlay = PanelContainer.new()
@@ -532,6 +542,8 @@ func _on_image_received(img_id: String, img_type: String, texture: Texture2D) ->
 		"cursor":
 			_update_inventory_bar()
 		"silhouette":
+			_show_portrait(img_id, texture)
+		"alpha":
 			_show_portrait(img_id, texture)
 
 

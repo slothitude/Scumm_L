@@ -30,7 +30,7 @@ const IMAGE_URL: String = "http://192.168.0.33:4000/v1/images/generations"
 const IMAGE_MODEL: String = "schnell"
 
 # --- Image Service (Bonsai FLUX pipeline) ---
-const IMAGE_SERVICE_URL: String = "http://100.84.161.63:8010"
+const IMAGE_SERVICE_URL: String = "http://100.84.161.63:8000"
 const IMAGE_CACHE_DIR: String = "user://image_cache"
 const IMAGE_GENERATION_TIMEOUT: float = 300.0
 

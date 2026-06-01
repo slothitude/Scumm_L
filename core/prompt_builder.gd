@@ -39,9 +39,10 @@ RESPONSE FORMAT — always return a single JSON object:
 
 IMAGE REQUESTS — include an "image_requests" array when visuals should be generated:
 - When a new item enters inventory → type "icon" (size 64), id = item name (lowercase, underscores)
+- When a new item enters inventory and needs transparency → type "alpha" (size 64), id = item name
 - When describing an NPC for the first time → type "portrait" (size 256), id = npc name
 - When the player examines something in detail → type "closeup" (size 512), id = object name
-- On first room visit → type "background" (size 1280), id = room name
+- On first room visit → ALWAYS request type "background" (size 1280), id = room name — this is required for every new room
 - For atmospheric/graded room backgrounds → type "atmosphere" (size 1280), id = room name
 - For retro pixel art icons → type "pixelate" (size 64, extra key "pixel_size": 8)
 - For small cursor-held items → type "cursor" (size 32), id = item name
