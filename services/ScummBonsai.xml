@@ -1,0 +1,27 @@
+<service>
+  <id>ScummBonsai</id>
+  <name>Scumm Bonsai</name>
+  <description>SCUMM-L Bonsai FLUX image gen on port 8000</description>
+  <executable>D:\Bonsai-Image-Demo\.venv\Scripts\python.exe</executable>
+  <arguments>-m uvicorn scripts.local_backend:app --host 0.0.0.0 --port 8000</arguments>
+  <workingdirectory>D:\Bonsai-Image-Demo</workingdirectory>
+  <env name="BONSAI_VARIANT" value="ternary"/>
+  <env name="PYTHONUTF8" value="1"/>
+  <env name="PYTHONIOENCODING" value="utf-8"/>
+  <env name="MFLUX_STUDIO_GPU_DEFAULT_BACKEND" value="bonsai-ternary-gemlite"/>
+  <env name="MFLUX_STUDIO_GPU_TEXT_ENCODER_PATH" value="D:\Bonsai-Image-Demo\models\bonsai-image-4B-ternary-gemlite\text_encoder-hqq-4bit"/>
+  <env name="MFLUX_STUDIO_GPU_VAE_PATH" value="D:\Bonsai-Image-Demo\models\bonsai-image-4B-ternary-gemlite\vae"/>
+  <env name="MFLUX_STUDIO_GPU_TOKENIZER_PATH" value="D:\Bonsai-Image-Demo\models\bonsai-image-4B-ternary-gemlite\text_encoder-hqq-4bit\tokenizer"/>
+  <env name="MFLUX_STUDIO_GPU_TERNARY_TRANSFORMER_PATH" value="D:\Bonsai-Image-Demo\models\bonsai-image-4B-ternary-gemlite\transformer-gemlite-int2"/>
+  <env name="MFLUX_STUDIO_GPU_BINARY_TRANSFORMER_PATH" value="D:\Bonsai-Image-Demo\models\bonsai-image-4B-binary-gemlite\transformer-gemlite-int1"/>
+  <logpath>D:\Bonsai-Image-Demo\logs</logpath>
+  <logmode>rotate</logmode>
+  <rotatetype>size</rotatetype>
+  <rotatesize>10485760</rotatesize>
+  <stopmode>default</stopmode>
+  <stoptimeout>30 sec</stoptimeout>
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="5 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+</service>
