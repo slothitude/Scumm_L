@@ -21,7 +21,7 @@ log = logging.getLogger("image_service")
 
 app = FastAPI(title="SCUMM-L Image Service")
 
-BONSAI_URL = "http://100.84.161.63:8000"
+BONSAI_URL = "http://localhost:8000"
 TIMEOUT = 300.0
 
 # Type-specific Bonsai defaults
