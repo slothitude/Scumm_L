@@ -46,7 +46,7 @@ func request(img_id: String, img_type: String, prompt: String, size: int = 64) -
 	var body := JSON.stringify({"prompt": prompt, "size": size, "id": img_id})
 	var headers := PackedStringArray(["Content-Type: application/json"])
 
-	var err := http.request_raw(url, headers, HTTPClient.METHOD_POST, body)
+	var err := http.request_raw(url, headers, HTTPClient.METHOD_POST, body.to_utf8_buffer())
 	if err != OK:
 		image_failed.emit(img_id, img_type, "HTTP request failed: %d" % err)
 		return

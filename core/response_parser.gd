@@ -138,7 +138,7 @@ func _normalize_image_requests(data: Dictionary) -> Array:
 		if req is not Dictionary:
 			continue
 		var img_type: String = str(req.get("type", "icon"))
-		var valid_types := ["icon", "background", "portrait", "closeup", "atmosphere",
+		var valid_types := ["icon", "alpha", "background", "portrait", "closeup", "atmosphere",
 			"pixelate", "cursor", "dialogue_frame", "tile", "silhouette"]
 		if img_type not in valid_types:
 			img_type = "icon"

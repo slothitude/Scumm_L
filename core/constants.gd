@@ -5,10 +5,10 @@ extends Node
 
 # --- LLM Endpoints (3-tier fallback cascade) ---
 
-# Tier 1: Z.ai primary
-const ZAI_URL: String = "https://api.z.ai/api/coding/paas/v4/chat/completions"
-const ZAI_MODEL: String = "glm-5.1"
-const ZAI_KEY: String = "a63a2a7ee2d5431d929c776122e3b706.hzHjrJlnfPd7cYfj"
+# Tier 1: NVIDIA NIM (cloud)
+const NIM_URL: String = "https://integrate.api.nvidia.com/v1/chat/completions"
+const NIM_MODEL: String = "minimaxai/minimax-m2.7"
+const NIM_KEY: String = "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"
 
 # Tier 2: LiteLLM proxy on Lappy
 const LITELLM_URL: String = "http://192.168.0.33:4000/v1/chat/completions"

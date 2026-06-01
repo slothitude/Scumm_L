@@ -1,6 +1,5 @@
 ## HTTP-based LLM client with 3-tier fallback cascade.
-## Tier 1: Z.ai GLM-5.1 → Tier 2: LiteLLM proxy → Tier 3: Ollama direct
-## Pattern reused from rabbit_reporter.py and exploring/note/agent_node.gd
+## Tier 1: NVIDIA NIM → Tier 2: LiteLLM proxy → Tier 3: Ollama direct
 
 extends Node
 
@@ -29,7 +28,7 @@ func send_prompt(messages: Array) -> void:
 	_is_busy = true
 	_fallback_tier = 0
 	_current_messages = messages
-	request_status.emit("Thinking (Z.ai)...")
+	request_status.emit("Thinking (NVIDIA NIM)...")
 	_send_to_current_tier()
 
 
@@ -64,9 +63,9 @@ func _get_tier_config() -> Dictionary:
 	match _fallback_tier:
 		0:
 			return {
-				"url": GameConsts.ZAI_URL,
-				"model": GameConsts.ZAI_MODEL,
-				"api_key": GameConsts.ZAI_KEY,
+				"url": GameConsts.NIM_URL,
+				"model": GameConsts.NIM_MODEL,
+				"api_key": GameConsts.NIM_KEY,
 			}
 		1:
 			return {
@@ -87,7 +86,7 @@ func _get_tier_config() -> Dictionary:
 func _try_fallback() -> void:
 	_fallback_tier += 1
 	if _fallback_tier <= 2:
-		var tier_names := ["Z.ai", "LiteLLM", "Ollama"]
+		var tier_names := ["NVIDIA NIM", "LiteLLM", "Ollama"]
 		print("[LLM] Falling back to tier %d (%s)" % [_fallback_tier, tier_names[_fallback_tier]])
 		request_status.emit("Trying %s..." % tier_names[_fallback_tier])
 		_send_to_current_tier()

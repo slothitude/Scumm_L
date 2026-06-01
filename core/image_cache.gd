@@ -1,7 +1,7 @@
 ## Disk cache manager for generated images.
 ## Saves/loads textures to user://image_cache/{type}/{id}.png
 
-extends RefCounted
+extends Node
 
 const CACHE_SUBDIRS := {
 	"icon": "icons",

@@ -181,7 +181,6 @@ func _build_ui() -> void:
 	portrait_panel = TextureRect.new()
 	portrait_panel.name = "PortraitPanel"
 	portrait_panel.custom_minimum_size = Vector2(64, 64)
-	portrait_panel.max_size = Vector2(64, 64)
 	portrait_panel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait_panel.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait_panel.visible = false
